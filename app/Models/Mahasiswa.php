@@ -2,15 +2,33 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Mahasiswa extends Model
 {
-    // TAMBAHKAN INI:
-    protected $fillable = ['nim', 'nama', 'kelas', 'matakuliah'];
+    use HasFactory;
+
+    protected $table = 'mahasiswas';
     
-    // Jika pakai primary key custom (nim sebagai primary key)
+    // TAMBAHKAN INI: Primary key bukan 'id'
     protected $primaryKey = 'nim';
     public $incrementing = false;
     protected $keyType = 'string';
+    
+    protected $fillable = [
+        'nim',
+        'nama', 
+        'kelas',
+        'matakuliah',
+        'kode_mk'
+    ];
+    
+    /**
+     * Relasi ke Mata Kuliah
+     */
+    public function mataKuliah()
+    {
+        return $this->belongsTo(Matakuliah::class, 'kode_mk', 'kode_mk');
+    }
 }

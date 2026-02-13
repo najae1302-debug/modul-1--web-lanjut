@@ -94,9 +94,9 @@ class MahasiswaController extends Controller
     public function update(Request $request, $nim)
     {
         $request->validate([
-            'nama' => 'required',
-            'kelas' => 'required',
-            'matakuliah' => 'required',
+            'nama' => 'required|max:100',
+            'kelas' => 'required|max:10',
+            'matakuliah' => 'required|max:100',
             'kode_mk' => 'nullable|exists:matakuliahs,kode_mk'
         ], [
             'nama.required' => 'Nama wajib diisi',

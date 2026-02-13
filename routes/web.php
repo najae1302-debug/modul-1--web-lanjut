@@ -1,13 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LatihanController;
 use App\Http\Controllers\MahasiswaController;
+use App\Http\Controllers\MatakuliahController;
 
+// Route Home
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('mahasiswa.index');
 });
 
-Route::get('/latihan', [LatihanController::class, 'index']);
-
+// Resource Routes
 Route::resource('mahasiswa', MahasiswaController::class);
+Route::resource('matakuliah', MatakuliahController::class);
