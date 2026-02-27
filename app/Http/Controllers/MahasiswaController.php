@@ -5,126 +5,111 @@ namespace App\Http\Controllers;
 use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class MahasiswaController extends Controller
 {
-    /**
-     * Menampilkan semua data
-     */
+    // ==============================
+    // TAMPILKAN DATA
+    // ==============================
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        
-        $query = Mahasiswa::query();
-        
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('nim', 'LIKE', "%{$search}%")
-                  ->orWhere('nama', 'LIKE', "%{$search}%")
-                  ->orWhere('kelas', 'LIKE', "%{$search}%")
-                  ->orWhere('matakuliah', 'LIKE', "%{$search}%");
-            });
-        }
-        
-        $mahasiswas = $query->latest()->paginate(10);
-        
+        $search = $request->search;
+
+        $mahasiswas = Mahasiswa::with('matakuliah', 'user')
+            ->when($search, function ($query) use ($search) {
+                $query->where('nim', 'like', "%$search%")
+                      ->orWhere('nama', 'like', "%$search%")
+                      ->orWhere('kelas', 'like', "%$search%");
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
         return view('mahasiswa.index', compact('mahasiswas', 'search'));
     }
 
-    /**
-     * Menampilkan form create
-     */
+    // ==============================
+    // FORM TAMBAH
+    // ==============================
     public function create()
     {
-        $matakuliahs = Matakuliah::orderBy('kode_mk')->get();
+        $matakuliahs = Matakuliah::orderBy('nama_mk')->get();
         return view('mahasiswa.create', compact('matakuliahs'));
     }
 
-    /**
-     * Menyimpan data baru
-     */
+    // ==============================
+    // SIMPAN DATA
+    // ==============================
     public function store(Request $request)
     {
         $request->validate([
-            'nim' => 'required|unique:mahasiswas,nim|max:20',
+            'nim' => 'required|max:20|unique:mahasiswas,nim',
             'nama' => 'required|max:100',
-            'kelas' => 'required|max:10',
-            'matakuliah' => 'required|max:100',
-            'kode_mk' => 'nullable|exists:matakuliahs,kode_mk'
-        ], [
-            'nim.required' => 'NIM wajib diisi',
-            'nim.unique' => 'NIM sudah terdaftar',
-            'nama.required' => 'Nama wajib diisi',
-            'kelas.required' => 'Kelas wajib diisi',
-            'matakuliah.required' => 'Mata kuliah wajib diisi'
+            'kelas' => 'required|max:20',
+            'matakuliah_id' => 'required|exists:matakuliahs,id',
         ]);
 
-        $data = $request->all();
-        $data['kode_mk'] = $request->kode_mk ?? null;
-        
-        Mahasiswa::create($data);
-        
+        Mahasiswa::create([
+            'nim' => $request->nim,
+            'nama' => $request->nama,
+            'kelas' => $request->kelas,
+            'matakuliah_id' => $request->matakuliah_id,
+            'user_id' => auth()->id(),
+        ]);
+
         return redirect()->route('mahasiswa.index')
             ->with('success', 'Data mahasiswa berhasil ditambahkan!');
     }
 
-    /**
-     * Menampilkan detail (opsional)
-     */
-    public function show($nim)
-    {
-        $mahasiswa = Mahasiswa::findOrFail($nim);
-        return view('mahasiswa.show', compact('mahasiswa'));
-    }
-
-    /**
-     * Menampilkan form edit
-     */
+    // ==============================
+    // FORM EDIT
+    // ==============================
     public function edit($nim)
     {
         $mahasiswa = Mahasiswa::findOrFail($nim);
-        $matakuliahs = Matakuliah::orderBy('kode_mk')->get();
+        $matakuliahs = Matakuliah::orderBy('nama_mk')->get();
+
         return view('mahasiswa.edit', compact('mahasiswa', 'matakuliahs'));
     }
 
-    /**
-     * Update data
-     */
+    // ==============================
+    // UPDATE DATA
+    // ==============================
     public function update(Request $request, $nim)
     {
+        $mahasiswa = Mahasiswa::findOrFail($nim);
+
         $request->validate([
-            'nama' => 'required',
-            'kelas' => 'required',
-            'matakuliah' => 'required',
-            'kode_mk' => 'nullable|exists:matakuliahs,kode_mk'
-        ], [
-            'nama.required' => 'Nama wajib diisi',
-            'kelas.required' => 'Kelas wajib diisi',
-            'matakuliah.required' => 'Mata kuliah wajib diisi'
+            'nama' => 'required|max:100',
+            'kelas' => 'required|max:20',
+            'matakuliah_id' => 'required|exists:matakuliahs,id',
         ]);
 
-        $mahasiswa = Mahasiswa::findOrFail($nim);
-        $mahasiswa->update($request->all());
-        
+        $mahasiswa->update([
+            'nama' => $request->nama,
+            'kelas' => $request->kelas,
+            'matakuliah_id' => $request->matakuliah_id,
+        ]);
+
         return redirect()->route('mahasiswa.index')
             ->with('success', 'Data mahasiswa berhasil diperbarui!');
     }
 
-    /**
-     * Hapus data
-     */
+    // ==============================
+    // HAPUS DATA (Manual Email Check)
+    // ==============================
     public function destroy($nim)
     {
-        $mahasiswa = Mahasiswa::where('nim', $nim)->first();
-        
-        if ($mahasiswa) {
-            $mahasiswa->delete();
-            return redirect()->route('mahasiswa.index')
-                ->with('success', 'Data mahasiswa berhasil dihapus!');
+        // 🔐 Cek email manual
+        if (!str_ends_with(auth()->user()->email, '@ikmi.ac.id')) {
+            return redirect()->back()
+                ->with('error', 'Hanya email @ikmi.ac.id yang bisa menghapus data.');
         }
-        
+
+        // Hapus data
+        $mahasiswa = Mahasiswa::findOrFail($nim);
+        $mahasiswa->delete();
+
         return redirect()->route('mahasiswa.index')
-            ->with('error', 'Data tidak ditemukan');
+            ->with('success', 'Data mahasiswa berhasil dihapus!');
     }
 }
