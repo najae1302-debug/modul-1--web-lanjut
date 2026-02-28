@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Matakuliah;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf; // <-- TAMBAHKAN INI untuk PDF
 
 class MatakuliahController extends Controller
 {
@@ -81,5 +82,92 @@ class MatakuliahController extends Controller
         
         return redirect()->route('matakuliah.index')
             ->with('success', 'Data mata kuliah berhasil dihapus!');
+    }
+
+    // ===========================================
+    // METHOD UNTUK PDF - TAMBAHAN DARI MODUL 4
+    // ===========================================
+    
+    /**
+     * Cetak laporan mata kuliah ke PDF (Download)
+     */
+    public function cetak_pdf()
+    {
+        // Ambil semua data mata kuliah
+        $matakuliah = Matakuliah::orderBy('kode_mk')->get();
+        
+        // Data untuk dikirim ke view
+        $data = [
+            'matakuliah' => $matakuliah,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'total_matakuliah' => $matakuliah->count(),
+            'judul' => 'LAPORAN DATA MATA KULIAH',
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        // Load view dan generate PDF
+        $pdf = Pdf::loadView('matakuliah.laporan_pdf', $data);
+        
+        // Set ukuran kertas
+        $pdf->setPaper('A4', 'portrait');
+        
+        // Download file PDF
+        return $pdf->download('laporan-matakuliah-'.date('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Preview laporan mata kuliah di browser (Stream)
+     */
+    public function preview_pdf()
+    {
+        // Ambil semua data mata kuliah
+        $matakuliah = Matakuliah::orderBy('kode_mk')->get();
+        
+        // Data untuk dikirim ke view
+        $data = [
+            'matakuliah' => $matakuliah,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'total_matakuliah' => $matakuliah->count(),
+            'judul' => 'LAPORAN DATA MATA KULIAH',
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        // Load view dan generate PDF
+        $pdf = Pdf::loadView('matakuliah.laporan_pdf', $data);
+        
+        // Set ukuran kertas
+        $pdf->setPaper('A4', 'portrait');
+        
+        // Tampilkan di browser (stream), bukan download
+        return $pdf->stream('laporan-matakuliah-'.date('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Cetak laporan mata kuliah berdasarkan semester tertentu (Opsional)
+     */
+    public function cetak_pdf_per_semester(Request $request)
+    {
+        $semester = $request->get('semester');
+        
+        $matakuliah = Matakuliah::when($semester, function($query) use ($semester) {
+                return $query->where('semester', $semester);
+            })
+            ->orderBy('semester')
+            ->orderBy('kode_mk')
+            ->get();
+        
+        $data = [
+            'matakuliah' => $matakuliah,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'total_matakuliah' => $matakuliah->count(),
+            'judul' => 'LAPORAN DATA MATA KULIAH PER SEMESTER',
+            'filter_semester' => $semester ?? 'Semua Semester',
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        $pdf = Pdf::loadView('matakuliah.laporan_pdf_per_semester', $data);
+        $pdf->setPaper('A4', 'portrait');
+        
+        return $pdf->download('laporan-matakuliah-semester-'.($semester ?? 'all').'-'.date('Y-m-d').'.pdf');
     }
 }

@@ -48,7 +48,7 @@
     border: 1px solid #bbf7d0;
 }
 
-/* Tombol soft green */
+/* Tombol soft green - UTAMA */
 .btn-soft-green {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     color: white;
@@ -61,12 +61,59 @@
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+    text-decoration: none;
 }
 
 .btn-soft-green:hover {
     background: linear-gradient(135deg, #16a34a, #15803d);
     transform: translateY(-1px);
     box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.3);
+    color: white;
+}
+
+/* Tombol PDF - BIRU */
+.btn-soft-blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    text-decoration: none;
+}
+
+.btn-soft-blue:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    color: white;
+}
+
+/* Tombol Preview - UNGU */
+.btn-soft-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.2);
+    text-decoration: none;
+}
+
+.btn-soft-purple:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
     color: white;
 }
 
@@ -239,6 +286,13 @@
 .text-info-soft-green i {
     color: #4ade80;
 }
+
+/* Toolbar group */
+.toolbar-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
 </style>
 
 <div class="container mt-4 mb-5">
@@ -248,7 +302,7 @@
         <div class="card-header bg-soft-gradient-green d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
                 <div class="bg-white rounded-circle p-2 me-3 shadow-sm" style="border: 2px solid #bbf7d0;">
-                    <i class="bi bi-journal-text" style="color: #97ddb1; font-size: 1.2rem;"></i>
+                    <i class="bi bi-journal-text" style="color: #22c55e; font-size: 1.2rem;"></i>
                 </div>
                 <div>
                     <h5 class="fw-semibold text-gray-800 mb-0">
@@ -273,15 +327,32 @@
 
         <div class="card-body">
 
-            {{-- TOOLBAR --}}
+            {{-- TOOLBAR DENGAN TOMBOL PDF --}}
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <a href="{{ route('matakuliah.create') }}" class="btn-soft-green text-decoration-none">
-                    <i class="bi bi-plus-circle"></i> Tambah Data Mata Kuliah
-                </a>
+                <div class="toolbar-group">
+                    {{-- TOMBOL TAMBAH DATA --}}
+                    <a href="{{ route('matakuliah.create') }}" class="btn-soft-green text-decoration-none">
+                        <i class="bi bi-plus-circle"></i> Tambah Data
+                    </a>
+                    
+                    {{-- TOMBOL CETAK PDF --}}
+                    <a href="{{ route('matakuliah.cetak_pdf') }}" 
+                       class="btn-soft-blue text-decoration-none"
+                       target="_blank">
+                        <i class="bi bi-file-pdf"></i> Cetak PDF
+                    </a>
+                    
+                    {{-- TOMBOL PREVIEW PDF --}}
+                    <a href="{{ route('matakuliah.preview_pdf') }}" 
+                       class="btn-soft-purple text-decoration-none"
+                       target="_blank">
+                        <i class="bi bi-eye"></i> Preview PDF
+                    </a>
+                </div>
 
                 <form action="{{ route('matakuliah.index') }}" method="GET">
                     <div class="search-box-green">
-                        <i class="bi bi-search" style="color: #a9e7c0; margin-right: 0.5rem;"></i>
+                        <i class="bi bi-search" style="color: #22c55e; margin-right: 0.5rem;"></i>
                         <input type="text"
                                name="search"
                                placeholder="Cari Kode atau Nama Mata Kuliah..."
@@ -332,11 +403,13 @@
 
                             <td class="text-center">
                                 <div class="btn-group-soft-green">
+                                    {{-- EDIT --}}
                                     <a href="{{ route('matakuliah.edit', $mk->kode_mk) }}"
                                        class="btn-soft-warning-green text-decoration-none">
                                         <i class="bi bi-pencil"></i> Edit
                                     </a>
 
+                                    {{-- DELETE --}}
                                     <form action="{{ route('matakuliah.destroy', $mk->kode_mk) }}"
                                           method="POST"
                                           class="d-inline"

@@ -156,7 +156,7 @@
 
 [data-tooltip]:after {
     content: '';
-    position: absolute;
+    position: relative;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
@@ -288,11 +288,30 @@
                 </div>
             @endif
 
-            {{-- TOOLBAR --}}
+            {{-- TOOLBAR DENGAN TOMBOL PDF --}}
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <a href="{{ route('mahasiswa.create') }}" class="btn-soft-blue-gradient text-decoration-none">
-                    <i class="bi bi-plus-circle"></i> Tambah Data
-                </a>
+                <div class="d-flex gap-2">
+                    {{-- TOMBOL TAMBAH DATA --}}
+                    <a href="{{ route('mahasiswa.create') }}" class="btn-soft-blue-gradient text-decoration-none">
+                        <i class="bi bi-plus-circle"></i> Tambah Data
+                    </a>
+                    
+                    {{-- TOMBOL CETAK PDF --}}
+                    <a href="{{ route('mahasiswa.cetak_pdf') }}" 
+                       class="btn-soft-blue-gradient text-decoration-none" 
+                       style="background: linear-gradient(135deg, #10b981, #059669);"
+                       target="_blank">
+                        <i class="bi bi-file-pdf"></i> Cetak PDF
+                    </a>
+                    
+                    {{-- TOMBOL PREVIEW PDF --}}
+                    <a href="{{ route('mahasiswa.preview_pdf') }}" 
+                       class="btn-soft-blue-gradient text-decoration-none" 
+                       style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"
+                       target="_blank">
+                        <i class="bi bi-eye"></i> Preview PDF
+                    </a>
+                </div>
 
                 <form action="{{ route('mahasiswa.index') }}" method="GET">
                     <div class="search-box d-flex align-items-center">

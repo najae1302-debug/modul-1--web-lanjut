@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf; // <-- TAMBAHKAN INI untuk PDF
 
 class MahasiswaController extends Controller
 {
@@ -111,5 +112,93 @@ class MahasiswaController extends Controller
 
         return redirect()->route('mahasiswa.index')
             ->with('success', 'Data mahasiswa berhasil dihapus!');
+    }
+
+    // ==============================
+    // FITUR BARU: CETAK PDF (MODUL 4)
+    // ==============================
+    
+    /**
+     * Cetak laporan mahasiswa ke PDF (Download)
+     */
+    public function cetak_pdf()
+    {
+        // Ambil semua data mahasiswa dengan relasi matakuliah dan user
+        $mahasiswa = Mahasiswa::with('matakuliah', 'user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Data tambahan untuk laporan
+        $data = [
+            'mahasiswa' => $mahasiswa,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'judul' => 'LAPORAN DATA MAHASISWA',
+            'total_mahasiswa' => $mahasiswa->count(),
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        // Load view dan generate PDF
+        $pdf = Pdf::loadView('mahasiswa.laporan_pdf', $data);
+        
+        // Set ukuran kertas (A4 landscape agar tabel lebih lebar)
+        $pdf->setPaper('A4', 'landscape');
+        
+        // Download file PDF
+        return $pdf->download('laporan-mahasiswa-'.date('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Preview laporan mahasiswa di browser (Stream)
+     */
+    public function preview_pdf()
+    {
+        // Ambil semua data mahasiswa dengan relasi
+        $mahasiswa = Mahasiswa::with('matakuliah', 'user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $data = [
+            'mahasiswa' => $mahasiswa,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'judul' => 'LAPORAN DATA MAHASISWA',
+            'total_mahasiswa' => $mahasiswa->count(),
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        $pdf = Pdf::loadView('mahasiswa.laporan_pdf', $data);
+        $pdf->setPaper('A4', 'landscape');
+        
+        // Tampilkan di browser (stream), bukan download
+        return $pdf->stream('laporan-mahasiswa-'.date('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Cetak laporan berdasarkan filter tertentu (Contoh: per kelas)
+     */
+    public function cetak_pdf_per_kelas(Request $request)
+    {
+        $kelas = $request->get('kelas');
+        
+        $mahasiswa = Mahasiswa::with('matakuliah', 'user')
+            ->when($kelas, function ($query) use ($kelas) {
+                return $query->where('kelas', $kelas);
+            })
+            ->orderBy('kelas')
+            ->orderBy('nama')
+            ->get();
+        
+        $data = [
+            'mahasiswa' => $mahasiswa,
+            'tanggal_cetak' => now()->format('d F Y'),
+            'judul' => 'LAPORAN DATA MAHASISWA PER KELAS',
+            'filter_kelas' => $kelas ?? 'Semua Kelas',
+            'total_mahasiswa' => $mahasiswa->count(),
+            'institusi' => 'STMIK IKMI CIREBON'
+        ];
+        
+        $pdf = Pdf::loadView('mahasiswa.laporan_pdf_per_kelas', $data);
+        $pdf->setPaper('A4', 'landscape');
+        
+        return $pdf->download('laporan-mahasiswa-per-kelas-'.date('Y-m-d').'.pdf');
     }
 }

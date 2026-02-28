@@ -12,24 +12,58 @@ use App\Http\Controllers\MatakuliahController;
 |--------------------------------------------------------------------------
 */
 
-// Halaman Utama (Public)
+// ===========================================
+// HALAMAN PUBLIK (TANPA LOGIN)
+// ===========================================
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Dashboard (Hanya untuk user yang sudah login & verifikasi email)
+// ===========================================
+// ROUTE TESTING DOMPDF (CEK INSTALASI)
+// ===========================================
+Route::get('/test-pdf', function() {
+    $pdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML('
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; }
+                h1 { color: #3490dc; }
+                .success { color: green; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h1>✅ DOMPDF BERHASIL DIINSTAL!</h1>
+            <p>Selamat! Library DomPDF sudah terpasang dengan benar di Laravel 12.</p>
+            <p class="success">Tanggal Test: ' . date('d F Y H:i:s') . '</p>
+            <hr>
+            <p>File ini adalah hasil generate dari route /test-pdf</p>
+        </body>
+        </html>
+    ');
+    return $pdf->download('test-dompdf-berhasil.pdf');
+})->name('test.pdf');
+
+// ===========================================
+// DASHBOARD (HANYA LOGIN & VERIFIED)
+// ===========================================
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// Group Route untuk Profile (Hanya untuk user yang sudah login)
+// ===========================================
+// GROUP ROUTE PROFILE (HANYA LOGIN)
+// ===========================================
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Group Route untuk Mahasiswa & Matakuliah (Hanya untuk user yang sudah login & verifikasi email)
+// ===========================================
+// GROUP ROUTE MAHASISWA & MATAKULIAH
+// (HANYA LOGIN & VERIFIED)
+// ===========================================
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // ===========================================
@@ -37,21 +71,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ===========================================
     
     // 1. ROUTE KHUSUS DELETE (dengan middleware email domain)
-    //    Ditempatkan SEBELUM resource route agar tidak konflik
     Route::delete('/mahasiswa/{mahasiswa}', [MahasiswaController::class, 'destroy'])
-        ->middleware('cek.email.ikmi') // Hanya user dengan email @ikmi.ac.id
+        ->middleware('cek.email.ikmi')
         ->name('mahasiswa.destroy');
     
-    // 2. RESOURCE ROUTE MAHASISWA (semua method kecuali destroy)
-    //    Akan menghasilkan route:
-    //    GET|HEAD  /mahasiswa ................ mahasiswa.index
-    //    GET|HEAD  /mahasiswa/create ......... mahasiswa.create
-    //    POST      /mahasiswa ................ mahasiswa.store
-    //    GET|HEAD  /mahasiswa/{mahasiswa} .... mahasiswa.show
-    //    GET|HEAD  /mahasiswa/{mahasiswa}/edit  mahasiswa.edit
-    //    PUT|PATCH /mahasiswa/{mahasiswa} .... mahasiswa.update
+    // 2. ROUTE CETAK PDF MAHASISWA
+    Route::get('/mahasiswa/cetak-pdf', [MahasiswaController::class, 'cetak_pdf'])
+        ->name('mahasiswa.cetak_pdf');
+    
+    // 3. ROUTE PREVIEW PDF MAHASISWA
+    Route::get('/mahasiswa/preview-pdf', [MahasiswaController::class, 'preview_pdf'])
+        ->name('mahasiswa.preview_pdf');
+    
+    // 4. ROUTE EXPORT EXCEL MAHASISWA (OPSIONAL - BISA DITAMBAHKAN NANTI)
+    // Route::get('/mahasiswa/export-excel', [MahasiswaController::class, 'export_excel'])
+    //     ->name('mahasiswa.export_excel');
+    
+    // 5. RESOURCE ROUTE MAHASISWA (SEMUA METHOD KECUALI DESTROY)
     Route::resource('mahasiswa', MahasiswaController::class)->except([
-        'destroy' // destroy sudah didefinisikan khusus di atas
+        'destroy'
     ]);
 
     // ===========================================
@@ -63,22 +101,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('cek.email.ikmi')
         ->name('matakuliah.destroy');
     
-    // 2. RESOURCE ROUTE MATAKULIAH (semua method kecuali destroy)
+    // 2. ROUTE CETAK PDF MATAKULIAH
+    Route::get('/matakuliah/cetak-pdf', [MatakuliahController::class, 'cetak_pdf'])
+        ->name('matakuliah.cetak_pdf');
+    
+    // 3. ROUTE PREVIEW PDF MATAKULIAH
+    Route::get('/matakuliah/preview-pdf', [MatakuliahController::class, 'preview_pdf'])
+        ->name('matakuliah.preview_pdf');
+    
+    // 4. RESOURCE ROUTE MATAKULIAH (SEMUA METHOD KECUALI DESTROY)
     Route::resource('matakuliah', MatakuliahController::class)->except([
         'destroy'
     ]);
 
 });
 
-// Auth routes (register, login, logout, dll) - dari Laravel Breeze
-require __DIR__.'/auth.php';
+// ===========================================
+// ROUTE UNTUK CEK LIST ROUTE (OPSIONAL - DEVELOPER ONLY)
+// ===========================================
+if (app()->environment('local')) {
+    Route::get('/route-list', function () {
+        $routes = Route::getRoutes();
+        echo "<h1>Daftar Route</h1>";
+        echo "<table border='1' cellpadding='5'>";
+        echo "<tr><th>Method</th><th>URI</th><th>Name</th><th>Action</th></tr>";
+        foreach ($routes as $route) {
+            echo "<tr>";
+            echo "<td>" . implode('|', $route->methods()) . "</td>";
+            echo "<td>" . $route->uri() . "</td>";
+            echo "<td>" . $route->getName() . "</td>";
+            echo "<td>" . $route->getActionName() . "</td>";
+            echo "</tr>";
+        }
+        echo "</table>";
+    })->middleware('auth');
+}
 
 // ===========================================
-// TESTING ROUTE (Opsional - untuk cek route list)
+// AUTH ROUTES (REGISTER, LOGIN, LOGOUT) - DARI LARAVEL BREEZE
 // ===========================================
-// Route::get('/routes', function () {
-//     $routes = Route::getRoutes();
-//     foreach ($routes as $route) {
-//         echo $route->getName() . ' - ' . $route->uri() . '<br>';
-//     }
-// })->middleware('auth');
+require __DIR__.'/auth.php';
